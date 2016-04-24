@@ -5,5 +5,12 @@ using System;
 
 
 public class Global {
-	
+}
+
+public enum WineState
+{
+	None, 
+	Normal,
+	Selected,
+	Pour,
 }
