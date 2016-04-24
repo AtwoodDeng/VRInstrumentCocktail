@@ -14,3 +14,11 @@ public enum WineState
 	Selected,
 	Pour,
 }
+
+public enum OrderState
+{
+	None,
+	Normal,
+	Selected,
+	Stick
+}

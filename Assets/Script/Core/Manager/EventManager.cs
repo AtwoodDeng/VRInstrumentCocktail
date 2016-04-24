@@ -10,6 +10,22 @@ public class Events
 	public static event EventHandler BeginGame;
 	public static void FireBeginGame(Message msg){if ( BeginGame != null ) BeginGame(msg) ; }
 
+	public static event EventHandler AddWine;
+	public static void FireAddWine(Message msg){if ( AddWine != null ) AddWine(msg) ; }
+
+	public static event EventHandler AddOrder;
+	public static void FireAddOrder(Message msg){if ( AddOrder != null ) AddOrder(msg) ; }
+
+
+	public static event EventHandler CorrectWine;
+	public static void FireCorrectWine(Message msg){if ( CorrectWine != null ) CorrectWine(msg) ; }
+
+	public static event EventHandler WrongWine;
+	public static void FireWrongWine(Message msg){if ( WrongWine != null ) WrongWine(msg) ; }
+
+
+	public static event EventHandler AfterDrink;
+	public static void FireAfterDrink(Message msg){if ( AfterDrink != null ) AfterDrink(msg) ; }
 }
 	
 public class Message : EventArgs

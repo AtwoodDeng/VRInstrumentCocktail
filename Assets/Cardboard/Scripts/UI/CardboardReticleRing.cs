@@ -16,14 +16,15 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.EventSystems;
 
-[AddComponentMenu("Cardboard/UI/CardboardReticle")]
 [RequireComponent(typeof(Renderer))]
-public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
+public class CardboardReticleRing : MonoBehaviour, ICardboardGazePointer {
   /// Number of segments making the reticle circle.
   public int reticleSegments = 20;
 
   /// Growth speed multiplier for the reticle/
   public float reticleGrowthSpeed = 8.0f;
+  
+	public float checkTime = 2f;
 
   // Private members
   private Material materialComp;
@@ -37,12 +38,12 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   private float reticleDistanceInMeters = 10.0f;
 
   // Minimum inner angle of the reticle (in degrees).
-  private const float kReticleMinInnerAngle = 0.0f;
+  private const float kReticleInnerAngle = 2.5f;
   // Minimum outer angle of the reticle (in degrees).
-  private const float kReticleMinOuterAngle = 0.5f;
+  private const float kReticleOuterAngle = 3.5f;
   // Angle at which to expand the reticle when intersecting with an object
   // (in degrees).
-  private const float kReticleGrowthAngle = 1.5f;
+//  private const float kReticleGrowthAngle = 1.5f;
 
   // Minimum distance of the reticle (in meters).
   private const float kReticleDistanceMin = 0.45f;
@@ -54,8 +55,10 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   private float reticleInnerDiameter = 0.0f;
   private float reticleOuterDiameter = 0.0f;
 
+	private float GazeStartTime =0;
+
   void Start () {
-    CreateReticleVertices();
+//    CreateReticleVertices(0);
 
     materialComp = gameObject.GetComponent<Renderer>().material;
   }
@@ -93,6 +96,7 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   public void OnGazeStart(Camera camera, GameObject targetObject, Vector3 intersectionPosition,
                           bool isInteractive) {
     SetGazeTarget(intersectionPosition, isInteractive);
+		GazeStartTime = Time.time;
   }
 
   /// Called every frame the user is still looking at a valid GameObject. This
@@ -115,8 +119,8 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   /// previously looked at.
   public void OnGazeExit(Camera camera, GameObject targetObject) {
     reticleDistanceInMeters = kReticleDistanceMax;
-    reticleInnerAngle = kReticleMinInnerAngle;
-    reticleOuterAngle = kReticleMinOuterAngle;
+    reticleInnerAngle = 0;
+    reticleOuterAngle = 0;
   }
 
   /// Called when the Cardboard trigger is initiated. This is practically when
@@ -132,14 +136,14 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   }
 
   public void GetPointerRadius(out float innerRadius, out float outerRadius) {
-    float min_inner_angle_radians = Mathf.Deg2Rad * kReticleMinInnerAngle;
-    float max_inner_angle_radians = Mathf.Deg2Rad * (kReticleMinInnerAngle + kReticleGrowthAngle);
+    float min_inner_angle_radians = Mathf.Deg2Rad * kReticleInnerAngle;
+	float max_inner_angle_radians = Mathf.Deg2Rad * kReticleOuterAngle;
 
     innerRadius = 2.0f * Mathf.Tan(min_inner_angle_radians);
     outerRadius = 2.0f * Mathf.Tan(max_inner_angle_radians);
   }
 
-  private void CreateReticleVertices() {
+private void CreateReticleVertices(float MaxAngle ) {
     Mesh mesh = new Mesh();
     gameObject.AddComponent<MeshFilter>();
     GetComponent<MeshFilter>().mesh = mesh;
@@ -151,7 +155,7 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
 
     Vector3[] vertices = new Vector3[vertex_count];
 
-    const float kTwoPi = Mathf.PI * 2.0f;
+		float kTwoPi = MaxAngle;
     int vi = 0;
     for (int si = 0; si <= segments_count; ++si) {
       // Add two vertices for every circle segment: one at the beginning of the
@@ -192,16 +196,21 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
   }
 
   private void UpdateDiameters() {
+		float process =  (Time.time - GazeStartTime ) / checkTime;
+
+		if ( process < 1f )
+			CreateReticleVertices(process * Mathf.PI * 2f );
+
     reticleDistanceInMeters =
       Mathf.Clamp(reticleDistanceInMeters, kReticleDistanceMin, kReticleDistanceMax);
 
-    if (reticleInnerAngle < kReticleMinInnerAngle) {
-      reticleInnerAngle = kReticleMinInnerAngle;
-    }
-
-    if (reticleOuterAngle < kReticleMinOuterAngle) {
-      reticleOuterAngle = kReticleMinOuterAngle;
-    }
+//    if (reticleInnerAngle < kReticleMinInnerAngle) {
+//      reticleInnerAngle = kReticleMinInnerAngle;
+//    }
+//
+//    if (reticleOuterAngle < kReticleMinOuterAngle) {
+//      reticleOuterAngle = kReticleMinOuterAngle;
+//    }
 
     float inner_half_angle_radians = Mathf.Deg2Rad * reticleInnerAngle * 0.5f;
     float outer_half_angle_radians = Mathf.Deg2Rad * reticleOuterAngle * 0.5f;
@@ -214,9 +223,13 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
     reticleOuterDiameter =
         Mathf.Lerp(reticleOuterDiameter, outer_diameter, Time.deltaTime * reticleGrowthSpeed);
 
+		Color col = Color.white;
+		col.a = process ;
     materialComp.SetFloat("_InnerDiameter", reticleInnerDiameter * reticleDistanceInMeters);
     materialComp.SetFloat("_OuterDiameter", reticleOuterDiameter * reticleDistanceInMeters);
     materialComp.SetFloat("_DistanceInMeters", reticleDistanceInMeters);
+
+	
   }
 
   private void SetGazeTarget(Vector3 target, bool interactive) {
@@ -225,11 +238,11 @@ public class CardboardReticle : MonoBehaviour, ICardboardGazePointer {
     reticleDistanceInMeters =
         Mathf.Clamp(targetLocalPosition.z, kReticleDistanceMin, kReticleDistanceMax);
     if (interactive) {
-      reticleInnerAngle = kReticleMinInnerAngle + kReticleGrowthAngle;
-			reticleOuterAngle = kReticleGrowthAngle + kReticleGrowthAngle;
+      reticleInnerAngle = kReticleInnerAngle ;
+      reticleOuterAngle = kReticleOuterAngle ;
     } else {
-      reticleInnerAngle = kReticleMinInnerAngle;
-      reticleOuterAngle = kReticleMinOuterAngle;
+      reticleInnerAngle = 0;
+      reticleOuterAngle = 0;
     }
   }
 }
